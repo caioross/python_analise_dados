@@ -77,6 +77,54 @@ def grafico1():
     )
     return figuraGrafico01.to_html()
         
+@app.route('/grafico2')
+def grafico2():
+    with sqlite3.connect(f'{caminho}banco01.bd') as conn:
+        df = pd.read_sql_query("""
+            SELECT AVG(beer_servings) AS cerveja, AVG(spirit_servings) AS destilados, AVG(wine_servings) AS vinhos FROM bebidas
+        """, conn)
+    df_melted = df.melt(var_name='Bebidas',value_name='Média de Porções')
+    figuraGrafico02 = px.bar(
+        df_melted,
+        x = "Bebidas",
+        y = "Média de Porções",
+        title = 'Media de consumo "global" por tipo'
+    )
+    return figuraGrafico02.to_html()
+
+@app.route("/grafico3")
+def grafico3():
+    regioes = {
+        "Europa":['France','Germany','Spain','Italy','Portugal'],
+        "Asia":['China','Japan','India','Thailand'],
+        "Africa":['Angola','Nigeria','Egypt','Algeria'],
+        "Americas":['USA','Canada','Brazil','Argentina','Mexico']
+    }
+    dados = []
+    with sqlite3.connect(f'{caminho}banco01.bd') as conn:
+        # itera sobre o dicionario, de regioes onde cada chave (regiao tem uma lista de paises) 
+        for regiao, paises in regioes.items():
+            placeholders = ",".join([f"'{pais}'" for pais in paises])
+            query = f"""
+                SELECT SUM(total_litres_of_pure_alcohol) AS total
+                FROM bebidas
+                WHERE country IN ({placeholders})
+            """
+            total = pd.read_sql_query(query, conn).iloc[0,0]
+            dados.append({
+                "Região": regiao,
+                "Consumo Total": total
+            })
+    dfRegioes = pd.DataFrame(dados)
+    figuraGrafico3 = px.pie(
+        dfRegioes,
+        names = "Região",
+        values = "Consumo Total",
+        title = "Consumo total por Região!"
+    )
+    return figuraGrafico3.to_html()
+
+
 
 if __name__ == '__main__':
     criarBandoDados()
